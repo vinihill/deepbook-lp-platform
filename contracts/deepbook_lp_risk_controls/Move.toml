@@ -1,0 +1,15 @@
+[package]
+name = "deepbook_lp_risk_controls"
+version = "0.0.1"
+authors = []
+edition = "2024"
+
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "devnet" }
+
+[addresses]
+deepbook_lp_risk_controls = "0x855555837c82c4365b98c23b6860098d84c81287112bd7fd355b301fb7a28d87"
+
+[dev-dependencies]
+
+

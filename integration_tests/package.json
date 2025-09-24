@@ -1,0 +1,30 @@
+{
+  "name": "deepbook-lp-integration-tests",
+  "version": "1.0.0",
+  "description": "Integration tests for DeepBook Liquidity Provisioning application",
+  "main": "test_suite.js",
+  "scripts": {
+    "test": "mocha test_suite.js --timeout 30000",
+    "test:frontend": "mocha frontend_tests.js --timeout 30000",
+    "test:api": "mocha api_tests.js --timeout 30000",
+    "test:all": "mocha *.js --timeout 30000",
+    "test:watch": "mocha *.js --timeout 30000 --watch"
+  },
+  "dependencies": {
+    "@mysten/sui.js": "^0.50.0",
+    "chai": "^4.3.7",
+    "mocha": "^10.2.0",
+    "puppeteer": "^21.0.0",
+    "axios": "^1.5.0"
+  },
+  "keywords": [
+    "sui",
+    "deepbook",
+    "liquidity",
+    "defi",
+    "testing"
+  ],
+  "author": "Manus AI",
+  "license": "MIT"
+}
+

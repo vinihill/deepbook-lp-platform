@@ -1,0 +1,16 @@
+[package]
+name = "deepbook_lp_strategies"
+version = "0.0.1"
+authors = []
+edition = "2024"
+
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "devnet" }
+deepbook_lp_vaults = { local = "../deepbook_lp_vaults" }
+
+[addresses]
+deepbook_lp_strategies = "0x53846b242c33224c1833f16e4b0843a31ccf9983962896d507ae92bb3efc1ab0"
+
+[dev-dependencies]
+
+

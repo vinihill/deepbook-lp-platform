@@ -1,0 +1,15 @@
+[package]
+name = "deepbook_lp_accounting"
+version = "0.0.1"
+authors = []
+edition = "2024"
+
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "devnet" }
+
+[addresses]
+deepbook_lp_accounting = "0x63654d1eed0900ab5b31d73874997b04eaa990a3bd1a55ccf2038b7dc733ff3c"
+
+[dev-dependencies]
+
+
