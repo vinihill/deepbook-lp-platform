@@ -1,0 +1,93 @@
+[package]
+name = "manus-liquidity-backend"
+version = "0.1.0"
+edition = "2021"
+authors = ["Manus AI Team"]
+description = "Backend services for Manus AI Liquidity Autonomy Platform"
+license = "Apache-2.0"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1.47", features = ["full"] }
+async-trait = "0.1"
+
+# Web framework
+axum = { version = "0.7", features = ["macros", "ws"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+
+# Sui SDK
+sui-sdk = { git = "https://github.com/MystenLabs/sui.git", branch = "testnet" }
+sui-types = { git = "https://github.com/MystenLabs/sui.git", branch = "testnet" }
+sui-json-rpc-types = { git = "https://github.com/MystenLabs/sui.git", branch = "testnet" }
+
+# Post-quantum cryptography
+pqcrypto-dilithium = "0.5"
+pqcrypto-kyber = "0.8"
+pqcrypto-traits = "0.3"
+
+# Cryptography
+sha2 = "0.10"
+sha3 = "0.10"
+blake3 = "1.5"
+hex = "0.4"
+
+# Database
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres"] }
+
+# Logging and tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "2.0"
+
+# Configuration
+config = "0.14"
+dotenv = "0.15"
+
+# Monitoring
+prometheus = "0.13"
+metrics = "0.23"
+
+# ZK proofs (SP1 integration)
+sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", optional = true }
+
+# AI/ML
+ndarray = "0.15"
+smartcore = "0.3"
+
+# WebAssembly runtime
+wasmer = "4.2"
+wasmer-compiler-cranelift = "4.2"
+
+[dev-dependencies]
+tokio-test = "0.4"
+mockall = "0.12"
+proptest = "1.4"
+
+[features]
+default = ["zk-proofs"]
+zk-proofs = ["sp1-sdk"]
+hardware-enclaves = []
+
+[[bin]]
+name = "manus-api-server"
+path = "src/bin/api_server.rs"
+
+[[bin]]
+name = "manus-agent-runner"
+path = "src/bin/agent_runner.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+

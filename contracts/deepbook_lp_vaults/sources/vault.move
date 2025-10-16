@@ -16,6 +16,8 @@ module deepbook_lp_vaults::vault {
         id: UID,
         asset_type: u8, // Placeholder for asset type (e.g., 0 for SUI, 1 for USDC)
         balance: Balance<sui::sui::SUI>,
+        total_shares: u64,
+        total_underlying: u64,
     }
 
     /// Error codes
@@ -33,6 +35,8 @@ module deepbook_lp_vaults::vault {
             id: object::new(ctx),
             asset_type,
             balance: balance::zero(),
+            total_shares: 0,
+            total_underlying: 0,
         };
         let vault_id = object::id(&vault);
         transfer::share_object(vault);
@@ -45,19 +49,41 @@ module deepbook_lp_vaults::vault {
     /// Deposits coins into a Vault.
     #[allow(lint(public_entry))]
     public entry fun deposit(vault: &mut Vault, coins: Coin<sui::sui::SUI>, _ctx: &mut TxContext) {
-        let amount = coin::value(&coins);
-        assert!(amount > 0, EINVALID_AMOUNT);
+        use deepbook_lp_vaults::vault_math;
+
+        let deposit_amount = coin::value(&coins);
+        assert!(deposit_amount > 0, EINVALID_AMOUNT);
+
+        let shares_to_mint = if (vault.total_shares == 0 || vault.total_underlying == 0) {
+            deposit_amount // First deposit, 1 share = 1 underlying
+        } else {
+            vault_math::calculate_shares_for_deposit(deposit_amount, vault.total_shares, vault.total_underlying)
+        };
+
         let coin_balance = coin::into_balance(coins);
         balance::join(&mut vault.balance, coin_balance);
+        vault.total_shares = vault.total_shares + shares_to_mint;
+        vault.total_underlying = vault.total_underlying + deposit_amount;
     }
 
     /// Withdraws coins from a Vault.
     #[allow(lint(public_entry))]
-    public entry fun withdraw(vault: &mut Vault, amount: u64, recipient: address, ctx: &mut TxContext) {
-        assert!(balance::value(&vault.balance) >= amount, EINVALID_AMOUNT);
-        let withdrawn_balance = balance::split(&mut vault.balance, amount);
+    public entry fun withdraw(vault: &mut Vault, shares_to_burn: u64, recipient: address, ctx: &mut TxContext) {
+        use deepbook_lp_vaults::vault_math;
+
+        assert!(shares_to_burn > 0, EINVALID_AMOUNT);
+        assert!(vault.total_shares >= shares_to_burn, EINVALID_AMOUNT);
+
+        let amount_to_withdraw = vault_math::calculate_amount_for_withdrawal(shares_to_burn, vault.total_shares, vault.total_underlying);
+
+        assert!(balance::value(&vault.balance) >= amount_to_withdraw, EINVALID_AMOUNT);
+
+        let withdrawn_balance = balance::split(&mut vault.balance, amount_to_withdraw);
         let new_coin = coin::from_balance(withdrawn_balance, ctx);
         transfer::public_transfer(new_coin, recipient);
+
+        vault.total_shares = vault.total_shares - shares_to_burn;
+        vault.total_underlying = vault.total_underlying - amount_to_withdraw;
     }
 
     /// Get the total deposited amount in the vault.

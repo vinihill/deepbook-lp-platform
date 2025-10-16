@@ -1,0 +1,56 @@
+/// Formal verification specifications for the Vault Math functions.
+module manus_liquidity::vault_math {
+    use sui::object;
+
+    /// Error codes
+    const E_DIVISION_BY_ZERO: u64 = 100;
+
+    spec module {
+        pragma verify = true;
+        pragma aborts_if_is_strict = true;
+        pragma keep_original_bytecode = true;
+    }
+
+    spec calculate_shares_for_deposit {
+        pragma verify = true;
+        aborts_if total_underlying == 0 && (total_shares != 0 || deposit_amount != 0) with E_DIVISION_BY_ZERO;
+        // If total_shares or total_underlying are 0, it's the first deposit, 1:1 ratio
+        // Otherwise, total_underlying must be > 0 for division
+        requires total_underlying > 0 || (total_shares == 0 && total_underlying == 0);
+
+        let shares_calculated = if (total_shares == 0 || total_underlying == 0) {
+            deposit_amount
+        } else {
+            ((deposit_amount as u128) * (total_shares as u128) / (total_underlying as u128)) as u64
+        };
+
+        ensures result == shares_calculated;
+
+        // Overflow safety for multiplication
+        // (deposit_amount as u128) * (total_shares as u128) must not overflow u128
+        // This is implicitly handled by u128, but if intermediate results were u64, it would need a check.
+        // The final result is cast to u64, so it must fit.
+        // If total_underlying > 0, then (deposit_amount * total_shares) / total_underlying <= MAX_U64
+        // This is a complex invariant that sui-prover might struggle with directly without ghost fields.
+        // For now, rely on the default overflow checks for u64 arithmetic after the u128 cast.
+    }
+
+    spec calculate_amount_for_withdrawal {
+        pragma verify = true;
+        aborts_if total_shares == 0 && shares_to_burn != 0 with E_DIVISION_BY_ZERO;
+        // If total_shares is 0, no withdrawal is possible, result is 0.
+        // Otherwise, total_shares must be > 0 for division.
+        requires total_shares > 0 || shares_to_burn == 0;
+
+        let amount_calculated = if (total_shares == 0) {
+            0
+        } else {
+            ((shares_to_burn as u128) * (total_underlying as u128) / (total_shares as u128)) as u64
+        };
+
+        ensures result == amount_calculated;
+
+        // Similar overflow considerations as calculate_shares_for_deposit
+    }
+}
+

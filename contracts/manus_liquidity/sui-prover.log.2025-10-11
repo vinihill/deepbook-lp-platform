@@ -1,0 +1,5 @@
+2025-10-11T11:10:04.078210Z DEBUG sui_prover: Sui-Prover CLI version: 0.0.2
+2025-10-11T11:11:57.661395Z  INFO move_prover_boogie_backend::generator: preparing module 0x0::vault_math
+2025-10-11T11:11:57.661498Z  INFO move_prover_boogie_backend::generator: preparing module 0x0::vault
+2025-10-11T11:11:57.669901Z ERROR telemetry_subscribers: panicked at crates/move-stackless-bytecode/src/stackless_bytecode_generator.rs:1461:26:
+internal error: entered unreachable code panic.file="crates/move-stackless-bytecode/src/stackless_bytecode_generator.rs" panic.line=1461 panic.column=26

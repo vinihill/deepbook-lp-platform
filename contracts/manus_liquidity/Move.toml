@@ -1,0 +1,18 @@
+[package]
+name = "manus_liquidity"
+version = "0.1.0"
+edition = "2024.beta"
+
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "testnet" }
+DeepBook = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/deepbook", rev = "testnet" }
+
+[addresses]
+manus_liquidity = "0x0"
+sui = "0x2"
+deepbook = "0xdee9"
+
+[dev-dependencies]
+
+[dev-addresses]
+

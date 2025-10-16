@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database
+  postgres:
+    image: postgres:16-alpine
+    container_name: manus-postgres
+    environment:
+      POSTGRES_DB: manus_liquidity
+      POSTGRES_USER: manus
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-manus_dev_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U manus"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API server
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: manus-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      MANUS_DATABASE_URL: postgres://manus:${POSTGRES_PASSWORD:-manus_dev_password}@postgres:5432/manus_liquidity
+      MANUS_SUI_NETWORK_URL: https://fullnode.testnet.sui.io:443
+      MANUS_SERVER_HOST: 0.0.0.0
+      MANUS_SERVER_PORT: 8080
+      MANUS_SECURITY_PQC_ENABLED: "true"
+      MANUS_SECURITY_ZK_PROOFS_ENABLED: "true"
+      MANUS_AGENTS_ENABLED: "true"
+      RUST_LOG: info
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  # AI Agent runner
+  agent:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: manus-agent
+    command: ["manus-agent-runner"]
+    depends_on:
+      - postgres
+      - backend
+    environment:
+      MANUS_DATABASE_URL: postgres://manus:${POSTGRES_PASSWORD:-manus_dev_password}@postgres:5432/manus_liquidity
+      MANUS_SUI_NETWORK_URL: https://fullnode.testnet.sui.io:443
+      MANUS_AGENTS_ENABLED: "true"
+      MANUS_AGENTS_REBALANCE_INTERVAL: "300"
+      MANUS_AGENTS_RISK_TOLERANCE: "0.5"
+      RUST_LOG: info
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  default:
+    name: manus-network
+

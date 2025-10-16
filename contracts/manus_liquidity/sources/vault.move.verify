@@ -1,0 +1,85 @@
+/// Formal verification specifications for the Vault contract.
+module manus_liquidity::vault {
+    use sui::object;
+    use sui::balance;
+    use sui::tx_context;
+    use manus_liquidity::vault_math;
+
+    spec module {
+        pragma verify = true;
+        pragma aborts_if_is_strict = true;
+        pragma keep_original_bytecode = true;
+    }
+
+    spec Vault {
+        invariant balance::value(&balance) >= 0;
+        invariant total_shares >= 0;
+        invariant total_underlying >= 0;
+        invariant total_shares == 0 ==> total_underlying == 0;
+        invariant total_underlying == 0 ==> total_shares == 0;
+        // Invariant: total_underlying / total_shares should be consistent (price per share)
+        // This is more complex and might require a ghost field or more advanced spec logic.
+    }
+
+    spec create_vault {
+        pragma verify = true;
+        ensures result.vault_id == object::id(result.vault_id);
+        ensures result.vault_id.balance == balance::zero();
+        ensures result.vault_id.total_shares == 0;
+        ensures result.vault_id.total_underlying == 0;
+        ensures result.vault_id.paused == false;
+    }
+
+    spec deposit {
+        pragma verify = true;
+        aborts_if !vault.paused with E_VAULT_PAUSED;
+        aborts_if deposit_amount == 0 with E_INVALID_AMOUNT;
+        aborts_if balance::value(&vault.balance) + deposit_amount > vault.max_capacity with E_MAX_CAPACITY_EXCEEDED;
+
+        let old_total_shares = vault.total_shares;
+        let old_total_underlying = vault.total_underlying;
+
+        let shares_to_mint = vault_math::calculate_shares_for_deposit(
+            deposit_amount,
+            old_total_shares,
+            old_total_underlying
+        );
+
+        ensures vault.total_shares == old_total_shares + shares_to_mint;
+        ensures vault.total_underlying == old_total_underlying + deposit_amount;
+        ensures balance::value(&vault.balance) == old(balance::value(&vault.balance)) + deposit_amount;
+    }
+
+    spec withdraw {
+        pragma verify = true;
+        aborts_if !vault.paused with E_VAULT_PAUSED;
+        aborts_if shares_to_burn == 0 with E_INVALID_AMOUNT;
+        aborts_if vault.total_shares < shares_to_burn with E_INSUFFICIENT_SHARES;
+
+        let old_total_shares = vault.total_shares;
+        let old_total_underlying = vault.total_underlying;
+
+        let amount_to_withdraw = vault_math::calculate_amount_for_withdrawal(
+            shares_to_burn,
+            old_total_shares,
+            old_total_underlying
+        );
+
+        aborts_if balance::value(&vault.balance) < amount_to_withdraw with E_INSUFFICIENT_BALANCE;
+
+        ensures vault.total_shares == old_total_shares - shares_to_burn;
+        ensures vault.total_underlying == old_total_underlying - amount_to_withdraw;
+        ensures balance::value(&vault.balance) == old(balance::value(&vault.balance)) - amount_to_withdraw;
+    }
+
+    spec pause {
+        pragma verify = true;
+        ensures vault.paused == true;
+    }
+
+    spec resume {
+        pragma verify = true;
+        ensures vault.paused == false;
+    }
+}
+

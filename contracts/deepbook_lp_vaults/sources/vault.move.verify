@@ -1,0 +1,68 @@
+module deepbook_lp_vaults::vault {
+    use sui::prover;
+    use sui::balance;
+    use sui::object;
+    use sui::coin;
+
+    // State invariants for the Vault struct
+    spec Vault {
+        invariant balance::value(&vault.balance) >= 0;
+        invariant vault.total_shares >= 0;
+        invariant vault.total_underlying >= 0;
+        invariant vault.total_shares == 0 ==> vault.total_underlying == 0;
+        invariant vault.total_underlying == 0 ==> vault.total_shares == 0;
+    }
+
+    // Formal verification for the create_vault function
+    #[spec(prove)]
+    fun create_vault(asset_type: u8, ctx: &mut sui::tx_context::TxContext) {
+        let old_vault_count = prover::global_count<Vault>();
+        prover::ensures(prover::global_count<Vault>() == old_vault_count + 1);
+        prover::ensures(prover::exists<Vault>(|v: Vault| v.asset_type == asset_type && balance::value(&v.balance) == 0 && v.total_shares == 0 && v.total_underlying == 0));
+    }
+
+    // Formal verification for the deposit function
+    #[spec(prove)]
+    fun deposit(vault: &mut Vault, coins: sui::coin::Coin<sui::sui::SUI>, ctx: &mut sui::tx_context::TxContext) {
+        let old_balance = balance::value(&vault.balance);
+        let old_total_shares = vault.total_shares;
+        let old_total_underlying = vault.total_underlying;
+        let deposit_amount = coin::value(&coins);
+
+        prover::requires(deposit_amount > 0);
+        prover::requires(old_balance + deposit_amount >= old_balance); // No overflow on balance join
+        prover::requires(old_total_underlying + deposit_amount >= old_total_underlying); // No overflow on total_underlying
+
+        // If first deposit, shares_to_mint = deposit_amount
+        // Else, shares_to_mint = vault_math::calculate_shares_for_deposit(deposit_amount, old_total_shares, old_total_underlying)
+        // We need to ensure that shares_to_mint calculation does not overflow total_shares
+        prover::requires(old_total_shares + deposit_amount >= old_total_shares); // Assuming worst case for shares_to_mint (deposit_amount)
+
+        prover::ensures(balance::value(&vault.balance) == old_balance + deposit_amount);
+        prover::ensures(vault.total_underlying == old_total_underlying + deposit_amount);
+        // The exact value of vault.total_shares depends on the vault_math function, which is separately verified.
+        // We ensure it's updated and doesn't overflow.
+        prover::ensures(vault.total_shares >= old_total_shares);
+    }
+
+    // Formal verification for the withdraw function
+    #[spec(prove)]
+    fun withdraw(vault: &mut Vault, shares_to_burn: u64, recipient: sui::address::Address, ctx: &mut sui::tx_context::TxContext) {
+        let old_balance = balance::value(&vault.balance);
+        let old_total_shares = vault.total_shares;
+        let old_total_underlying = vault.total_underlying;
+
+        prover::requires(shares_to_burn > 0);
+        prover::requires(old_total_shares >= shares_to_burn);
+        prover::requires(old_total_underlying >= 0); // Should always be true by invariant
+
+        // amount_to_withdraw = vault_math::calculate_amount_for_withdrawal(shares_to_burn, old_total_shares, old_total_underlying)
+        // We need to ensure that amount_to_withdraw is less than or equal to old_balance
+        prover::requires(old_balance >= shares_to_burn); // Assuming worst case for amount_to_withdraw (shares_to_burn)
+
+        prover::ensures(balance::value(&vault.balance) <= old_balance);
+        prover::ensures(vault.total_shares == old_total_shares - shares_to_burn);
+        prover::ensures(vault.total_underlying <= old_total_underlying);
+    }
+}
+

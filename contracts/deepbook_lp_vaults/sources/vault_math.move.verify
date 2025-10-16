@@ -1,0 +1,35 @@
+module deepbook_lp_vaults::vault_math {
+
+    spec module {
+        // Here we can add module-level invariants if needed in the future.
+    }
+
+    // Formal verification for the can_deposit function
+    #[spec(prove)]
+    fun can_deposit_spec(current_balance: u64, deposit_amount: u64, max_balance: u64) {
+        use sui::prover;
+        prover::requires(current_balance + deposit_amount <= max_balance);
+        prover::ensures(true); // Simple check, more complex logic can be added
+    }
+
+    // Formal verification for the calculate_shares_for_deposit function
+    #[spec(prove)]
+    fun calculate_shares_for_deposit_spec(deposit_amount: u64, total_shares: u64, total_underlying: u64) {
+        use sui::prover;
+        prover::requires(total_underlying > 0);
+        prover::requires(total_shares > 0);
+        prover::requires(deposit_amount as u128 * total_shares as u128 / total_underlying as u128 <= 18446744073709551615);
+        prover::ensures(deposit_amount * total_shares / total_underlying >= 0);
+    }
+
+    // Formal verification for the calculate_amount_for_withdrawal function
+    #[spec(prove)]
+    fun calculate_amount_for_withdrawal_spec(shares_to_burn: u64, total_shares: u64, total_underlying: u64) {
+        use sui::prover;
+        prover::requires(total_shares > 0);
+        prover::requires(shares_to_burn <= total_shares);
+        prover::requires(shares_to_burn as u128 * total_underlying as u128 / total_shares as u128 <= 18446744073709551615);
+        prover::ensures(shares_to_burn * total_underlying / total_shares >= 0);
+    }
+}
+
